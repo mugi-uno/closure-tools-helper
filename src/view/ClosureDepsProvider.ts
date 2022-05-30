@@ -56,15 +56,20 @@ type DepsMap = {
   moduleMap: {
     [key: string]: {
       file: string;
+      requiredBy: string[];
     };
   };
 };
 
 class Deps {
-  private readonly depsMap: DepsMap;
+  public readonly depsMap: DepsMap;
+  public readonly depsDir: string;
 
   constructor(public readonly depsJsPath: string) {
+    this.depsDir = path.dirname(depsJsPath);
     this.depsMap = this.parseDepsJS();
+
+    console.log(this.depsMap);
   }
 
   private parseDepsJS(): DepsMap {
@@ -73,15 +78,23 @@ class Deps {
 
     const depsMap: DepsMap = lines.reduce(
       (prev, line) => {
-        const parsed = JSON.parse(
-          line
-            .replace("goog.addDependency", "")
-            .replace("(", "[")
-            .replace(");", "]")
-            .replace(/\'/g, '"')
-        );
+        let parsed;
 
-        const [file, provides, requires]: [string, string[], string[]] = parsed;
+        try {
+          parsed = JSON.parse(
+            line
+              .replace("goog.addDependency", "")
+              .replace("(", "[")
+              .replace(");", "]")
+              .replace(/\'/g, '"')
+          );
+        } catch (e) {
+          return prev;
+        }
+
+        const [relativeFile, provides, requires]: [string, string[], string[]] =
+          parsed;
+        const file = path.resolve(path.dirname(this.depsDir), relativeFile);
 
         prev.fileMap[file] = {
           provides,
@@ -89,7 +102,7 @@ class Deps {
         };
 
         provides.forEach((providedModule) => {
-          prev.moduleMap[providedModule] = { file };
+          prev.moduleMap[providedModule] = { file, requiredBy: [] };
         });
 
         prev.moduleMap;
@@ -101,6 +114,18 @@ class Deps {
         moduleMap: {},
       } as DepsMap
     );
+
+    // create requiredBy
+    Object.keys(depsMap.fileMap).forEach((file) => {
+      const requires = depsMap.fileMap[file].requires;
+      requires.forEach((requireModule) => {
+        const moduleValue = depsMap.moduleMap[requireModule];
+        if (!moduleValue) {
+          return;
+        }
+        moduleValue.requiredBy = [...moduleValue.requiredBy, file];
+      });
+    });
 
     return depsMap;
   }
