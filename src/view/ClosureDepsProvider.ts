@@ -1,7 +1,7 @@
-import * as vscode from "vscode";
-import * as glob from "glob";
-import * as fs from "fs";
 import * as path from "path";
+import * as vscode from "vscode";
+import { Dependency } from "./Dependency";
+import { Deps } from "./Deps";
 
 export class ClosureDepsProvider
   implements vscode.TreeDataProvider<vscode.TreeItem>
@@ -28,117 +28,21 @@ export class ClosureDepsProvider
       return;
     }
 
-    const depsFiles = glob.sync("src/**/deps.js", {
-      cwd: root,
-      ignore: "**/node_modules/**/*",
-    });
+    // const depsFiles = glob.sync("**/deps.js", {
+    //   cwd: root,
+    //   ignore: "**/node_modules/**/*",
+    // });
 
-    const depsJS = depsFiles.find((file) => {
-      const text = fs.readFileSync(path.resolve(root, file));
-      return text.toString().includes("goog.");
-    });
+    // const depsJS = depsFiles.find((file) => {
+    //   const text = fs.readFileSync(path.resolve(root, file));
+    //   return text.toString().includes("goog.");
+    // });
+    const depsJS = "closure/goog/deps.js";
 
     if (depsJS) {
       const depsJsAbsolutePath = path.resolve(root, depsJS);
       this.deps = new Deps(depsJsAbsolutePath);
       console.log(`detected deps.js: ${depsJsAbsolutePath}`);
     }
-  }
-}
-
-type DepsMap = {
-  fileMap: {
-    [key: string]: {
-      provides: string[];
-      requires: string[];
-    };
-  };
-  moduleMap: {
-    [key: string]: {
-      file: string;
-      requiredBy: string[];
-    };
-  };
-};
-
-class Deps {
-  public readonly depsMap: DepsMap;
-  public readonly depsDir: string;
-
-  constructor(public readonly depsJsPath: string) {
-    this.depsDir = path.dirname(depsJsPath);
-    this.depsMap = this.parseDepsJS();
-
-    console.log(this.depsMap);
-  }
-
-  private parseDepsJS(): DepsMap {
-    const text = fs.readFileSync(this.depsJsPath);
-    const lines = text.toString().split("\n");
-
-    const depsMap: DepsMap = lines.reduce(
-      (prev, line) => {
-        let parsed;
-
-        try {
-          parsed = JSON.parse(
-            line
-              .replace("goog.addDependency", "")
-              .replace("(", "[")
-              .replace(");", "]")
-              .replace(/\'/g, '"')
-          );
-        } catch (e) {
-          return prev;
-        }
-
-        const [relativeFile, provides, requires]: [string, string[], string[]] =
-          parsed;
-        const file = path.resolve(path.dirname(this.depsDir), relativeFile);
-
-        prev.fileMap[file] = {
-          provides,
-          requires,
-        };
-
-        provides.forEach((providedModule) => {
-          prev.moduleMap[providedModule] = { file, requiredBy: [] };
-        });
-
-        prev.moduleMap;
-
-        return prev;
-      },
-      {
-        fileMap: {},
-        moduleMap: {},
-      } as DepsMap
-    );
-
-    // create requiredBy
-    Object.keys(depsMap.fileMap).forEach((file) => {
-      const requires = depsMap.fileMap[file].requires;
-      requires.forEach((requireModule) => {
-        const moduleValue = depsMap.moduleMap[requireModule];
-        if (!moduleValue) {
-          return;
-        }
-        moduleValue.requiredBy = [...moduleValue.requiredBy, file];
-      });
-    });
-
-    return depsMap;
-  }
-}
-
-class Dependency extends vscode.TreeItem {
-  constructor(
-    public readonly label: string,
-    public readonly description: string,
-    public readonly collapsibleState: vscode.TreeItemCollapsibleState
-  ) {
-    super(label, collapsibleState);
-    this.tooltip = `${this.label}`;
-    this.description = description;
   }
 }

@@ -1,3 +1,4 @@
+import { ClosureDefinitionProvider } from "./view/ClosureDefinitionProvider";
 import { ClosureDepsProvider } from "./view/ClosureDepsProvider";
 import * as vscode from "vscode";
 
@@ -9,12 +10,25 @@ export function activate(context: vscode.ExtensionContext) {
       : undefined;
 
   const closureDepsProvider = new ClosureDepsProvider(rootPath);
-  vscode.window.registerTreeDataProvider(
-    "closureDepsView",
-    closureDepsProvider
-  );
 
   closureDepsProvider.findDepsJS();
+
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      "closureDepsView",
+      closureDepsProvider
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      [
+        { scheme: "file", language: "javascript" },
+        { scheme: "file", language: "typescript" },
+      ],
+      new ClosureDefinitionProvider()
+    )
+  );
 
   // let disposable = vscode.commands.registerCommand(
   //   "closure-tools-helper.helloWorld",
@@ -24,8 +38,6 @@ export function activate(context: vscode.ExtensionContext) {
   //     );
   //   }
   // );
-
-  // context.subscriptions.push(disposable);
 }
 
 // this method is called when your extension is deactivated
