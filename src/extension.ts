@@ -1,24 +1,19 @@
 import { ClosureDefinitionProvider } from "./view/ClosureDefinitionProvider";
 import { ClosureDepsProvider } from "./view/ClosureDepsProvider";
 import * as vscode from "vscode";
+import { deps } from "./view/Deps";
 
 export function activate(context: vscode.ExtensionContext) {
   const rootPath =
-    vscode.workspace.workspaceFolders &&
-    vscode.workspace.workspaceFolders.length > 0
+    vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : undefined;
 
+  deps.initialize(rootPath);
+
   const closureDepsProvider = new ClosureDepsProvider(rootPath);
 
-  closureDepsProvider.findDepsJS();
-
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(
-      "closureDepsView",
-      closureDepsProvider
-    )
-  );
+  context.subscriptions.push(vscode.window.registerTreeDataProvider("closureDepsView", closureDepsProvider));
 
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(

@@ -1,5 +1,8 @@
+import { Position, TextDocument } from "vscode";
 import * as path from "path";
 import * as fs from "fs";
+import * as tsutils from "tsutils";
+import * as ts from "typescript";
 
 type DepsMap = {
   fileMap: {
@@ -17,18 +20,49 @@ type DepsMap = {
 };
 
 export class Deps {
-  public readonly depsMap: DepsMap;
-  public readonly depsDir: string;
+  private depsMap?: DepsMap;
+  private depsDir?: string;
 
-  constructor(public readonly depsJsPath: string) {
-    this.depsDir = path.dirname(depsJsPath);
-    this.depsMap = this.parseDepsJS();
+  constructor() {}
 
-    console.log(this.depsMap);
+  public get initialized() {
+    return !!this.depsDir && !!this.depsMap;
   }
 
-  private parseDepsJS(): DepsMap {
-    const text = fs.readFileSync(this.depsJsPath);
+  public initialize(workspaceRoot: string | undefined) {
+    this.findDepsJS(workspaceRoot);
+  }
+
+  private findDepsJS(workspaceRoot: string | undefined) {
+    const root = workspaceRoot;
+    if (workspaceRoot === undefined) {
+      return;
+    }
+
+    // const depsFiles = glob.sync("**/deps.js", {
+    //   cwd: workspaceRoot,
+    //   ignore: "**/node_modules/**/*",
+    // });
+
+    // const depsJS = depsFiles.find((file) => {
+    //   const text = fs.readFileSync(path.resolve(workspaceRoot, file));
+    //   return text.toString().includes("goog.");
+    // });
+    const depsJS = "closure/goog/deps.js";
+
+    if (depsJS) {
+      const depsJsAbsolutePath = path.resolve(workspaceRoot, depsJS);
+
+      this.depsDir = path.dirname(depsJsAbsolutePath);
+      this.depsMap = this.parseDepsJS(depsJsAbsolutePath);
+
+      console.log(this.depsMap);
+      console.log(`detected deps.js: ${depsJsAbsolutePath}`);
+    }
+  }
+
+  private parseDepsJS(depsJsPath: string): DepsMap {
+    const text = fs.readFileSync(depsJsPath);
     const lines = text.toString().split("\n");
 
     const depsMap: DepsMap = lines.reduce(
@@ -37,19 +71,14 @@ export class Deps {
 
         try {
           parsed = JSON.parse(
-            line
-              .replace("goog.addDependency", "")
-              .replace("(", "[")
-              .replace(");", "]")
-              .replace(/\'/g, '"')
+            line.replace("goog.addDependency", "").replace("(", "[").replace(");", "]").replace(/\'/g, '"')
           );
         } catch (e) {
           return prev;
         }
 
-        const [relativeFile, provides, requires]: [string, string[], string[]] =
-          parsed;
-        const file = path.resolve(this.depsDir, relativeFile);
+        const [relativeFile, provides, requires]: [string, string[], string[]] = parsed;
+        const file = path.resolve(this.depsDir!, relativeFile);
 
         prev.fileMap[file] = {
           provides,
@@ -84,4 +113,62 @@ export class Deps {
 
     return depsMap;
   }
+
+  public hasFile(absoluteFilePath: string) {
+    return !!this.depsMap?.fileMap[absoluteFilePath];
+  }
+
+  public findeModule(moduleName: string, document: TextDocument): string | null {
+    const fileInfo = this.depsMap?.fileMap[document.fileName];
+    if (!fileInfo) return null;
+
+    const matchedRequireModule = fileInfo.requires.find((req) => req === moduleName);
+
+    if (matchedRequireModule) {
+      const moduleInfo = this.depsMap?.moduleMap[matchedRequireModule];
+
+      if (moduleInfo?.file) return moduleInfo.file;
+    }
+
+    // search parent module
+    const lastDotPos = moduleName.lastIndexOf(".");
+    if (lastDotPos === -1) return null;
+
+    return this.findeModule(moduleName.substring(0, lastDotPos), document);
+  }
+
+  public findModulePosition(moduleName: string, fileName: string): Position {
+    const code = fs.readFileSync(fileName).toString();
+    const source = ts.createSourceFile(path.basename(fileName), code, ts.ScriptTarget.ES2022, true);
+    const moduleNode = this.findModuleNodeFromAST(moduleName, source);
+
+    if (moduleNode) {
+      const position = source.getLineAndCharacterOfPosition(moduleNode.pos);
+      return new Position(position.line, position.character);
+    }
+
+    return new Position(0, 0);
+  }
+
+  private findModuleNodeFromAST(moduleName: string, node: ts.Node): ts.Node | null {
+    if (node.kind === ts.SyntaxKind.Identifier) return null;
+
+    if (node.kind === ts.SyntaxKind.BinaryExpression) {
+      const binaryExpression = node as ts.BinaryExpression;
+      if (binaryExpression.left.getText() === moduleName) {
+        return binaryExpression;
+      }
+    }
+
+    const children = node.getChildren();
+
+    for (const child of children) {
+      const result = this.findModuleNodeFromAST(moduleName, child);
+      if (result) return result;
+    }
+
+    return null;
+  }
 }
+
+export const deps = new Deps();
