@@ -55,12 +55,12 @@ export class ClosureDefinitionProvider implements DefinitionProvider {
 
     // find from deps
     const moduleName = node.getText();
-    const moduleFile = deps.findeModule(moduleName, document);
+    const findResult = deps.findModule(moduleName, document);
 
-    if (!moduleFile) return null;
+    if (!findResult) return null;
 
-    const position = deps.findModulePosition(moduleName, moduleFile);
+    const position = deps.findModulePosition([moduleName, findResult.findedModule], findResult.moduleFile);
 
-    return new Location(Uri.file(moduleFile), position);
+    return new Location(Uri.file(findResult.moduleFile), position);
   }
 }

@@ -118,7 +118,7 @@ export class Deps {
     return !!this.depsMap?.fileMap[absoluteFilePath];
   }
 
-  public findeModule(moduleName: string, document: TextDocument): string | null {
+  public findModule(moduleName: string, document: TextDocument): { moduleFile: string; findedModule: string } | null {
     const fileInfo = this.depsMap?.fileMap[document.fileName];
     if (!fileInfo) return null;
 
@@ -127,24 +127,31 @@ export class Deps {
     if (matchedRequireModule) {
       const moduleInfo = this.depsMap?.moduleMap[matchedRequireModule];
 
-      if (moduleInfo?.file) return moduleInfo.file;
+      if (moduleInfo?.file)
+        return {
+          moduleFile: moduleInfo.file,
+          findedModule: moduleName,
+        };
     }
 
     // search parent module
     const lastDotPos = moduleName.lastIndexOf(".");
     if (lastDotPos === -1) return null;
 
-    return this.findeModule(moduleName.substring(0, lastDotPos), document);
+    return this.findModule(moduleName.substring(0, lastDotPos), document);
   }
 
-  public findModulePosition(moduleName: string, fileName: string): Position {
+  public findModulePosition(moduleNames: string[], fileName: string): Position {
     const code = fs.readFileSync(fileName).toString();
     const source = ts.createSourceFile(path.basename(fileName), code, ts.ScriptTarget.ES2022, true);
-    const moduleNode = this.findModuleNodeFromAST(moduleName, source);
 
-    if (moduleNode) {
-      const position = source.getLineAndCharacterOfPosition(moduleNode.pos);
-      return new Position(position.line, position.character);
+    for (const moduleName of moduleNames) {
+      const moduleNode = this.findModuleNodeFromAST(moduleName, source);
+
+      if (moduleNode) {
+        const position = source.getLineAndCharacterOfPosition(moduleNode.getStart());
+        return new Position(position.line, position.character);
+      }
     }
 
     return new Position(0, 0);
