@@ -11,9 +11,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   deps.initialize(rootPath);
 
-  const closureDepsProvider = new ClosureDepsProvider(rootPath);
+  // const closureDepsProvider = new ClosureDepsProvider(rootPath);
 
-  context.subscriptions.push(vscode.window.registerTreeDataProvider("closureDepsView", closureDepsProvider));
+  // context.subscriptions.push(vscode.window.registerTreeDataProvider("closureDepsView", closureDepsProvider));
 
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(

@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import { glob } from "glob";
 import * as path from "path";
 import { TextDocument } from "vscode";
 
@@ -37,16 +38,16 @@ export class Deps {
       return;
     }
 
-    // const depsFiles = glob.sync("**/deps.js", {
-    //   cwd: workspaceRoot,
-    //   ignore: "**/node_modules/**/*",
-    // });
+    const depsFiles = glob.sync("**/deps.js", {
+      cwd: workspaceRoot,
+      ignore: "**/node_modules/**/*",
+    });
 
-    // const depsJS = depsFiles.find((file) => {
-    //   const text = fs.readFileSync(path.resolve(workspaceRoot, file));
-    //   return text.toString().includes("goog.");
-    // });
-    const depsJS = "closure/goog/deps.js";
+    const depsJS = depsFiles.find((file) => {
+      const text = fs.readFileSync(path.resolve(workspaceRoot, file));
+      return text.toString().includes("goog.");
+    });
+    // const depsJS = "closure/goog/deps.js";
 
     if (depsJS) {
       const depsJsAbsolutePath = path.resolve(workspaceRoot, depsJS);
