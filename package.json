@@ -2,6 +2,7 @@
   "name": "closure-tools-helper",
   "displayName": "closure-tools-helper",
   "description": "VSCode Extension for development with Google Closre Tools.",
+  "repository": "https://github.com/mugi-uno/closure-tools-helper",
   "icon": "images/icon-128x128.png",
   "version": "1.0.0",
   "engines": {
