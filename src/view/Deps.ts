@@ -41,7 +41,7 @@ export class Deps {
 
       if (!fs.existsSync(depsJsAbsolutePath)) return;
 
-      const depsMap = this.parseDepsJS(depsJsAbsolutePath, closurePath);
+      const depsMap = this.parseDepsJS(depsJsAbsolutePath);
 
       this.depsMap = {
         fileMap: {
