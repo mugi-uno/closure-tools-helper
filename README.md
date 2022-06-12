@@ -8,9 +8,10 @@ VSCode Extension for development with Google Closre Tools.
 
 Closure Tools Helper provide 'Go to Definition' based on deps.js.
 
-\!\[feature X\]\(images/feature-x.png\)
+## Settings
 
-## Requirements
+Closure Tools Helper uses deps.js for module resolution.
+The following settings are required for use.
 
-Closure Tools Helper automatically searches deps.js and uses it for module resolution.
-deps.js must be generated in advance.
+- closuretoolshelper.closurePath
+- closuretoolshelper.depsPaths

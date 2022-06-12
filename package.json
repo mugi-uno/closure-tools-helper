@@ -3,7 +3,7 @@
   "displayName": "closure-tools-helper",
   "description": "VSCode Extension for development with Google Closre Tools.",
   "icon": "images/icon-128x128.png",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.67.0"
   },
