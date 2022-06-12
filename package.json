@@ -14,17 +14,24 @@
     "onLanguage:typescript",
     "onView:closureDepsView"
   ],
-  "main": "./dist/extension.js",
   "contributes": {
-    "views": {
-      "explorer": [
-        {
-          "id": "closureDepsView",
-          "name": "Closure Deps"
+    "configuration": {
+      "title": "Closure Tools Helper",
+      "properties": {
+        "closuretoolshelper.closurePath": {
+          "type": "string",
+          "default": [],
+          "description": "Value of '--closure-path' option specified when generating deps.js."
+        },
+        "closuretoolshelper.depsPaths": {
+          "type": "array",
+          "default": [],
+          "description": "All deps.js paths from workspace root."
         }
-      ]
+      }
     }
   },
+  "main": "./dist/extension.js",
   "scripts": {
     "vscode:prepublish": "yarn run package",
     "compile": "webpack",

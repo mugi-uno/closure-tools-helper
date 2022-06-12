@@ -9,7 +9,11 @@ export function activate(context: vscode.ExtensionContext) {
       ? vscode.workspace.workspaceFolders[0].uri.fsPath
       : undefined;
 
-  deps.initialize(rootPath);
+  deps.initialize(
+    rootPath,
+    vscode.workspace.getConfiguration("closuretoolshelper").get("closurePath"),
+    vscode.workspace.getConfiguration("closuretoolshelper").get<string[] | undefined>("depsPaths")
+  );
 
   // const closureDepsProvider = new ClosureDepsProvider(rootPath);
 

@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import { glob } from "glob";
 import * as path from "path";
 import { TextDocument } from "vscode";
 
@@ -20,44 +19,41 @@ type DepsMap = {
 
 export class Deps {
   private depsMap?: DepsMap;
-  private depsDir?: string;
+  private closurePath?: string;
 
   constructor() {}
 
   public get initialized() {
-    return !!this.depsDir && !!this.depsMap;
+    return !!this.depsMap;
   }
 
-  public initialize(workspaceRoot: string | undefined) {
-    this.findDepsJS(workspaceRoot);
+  public initialize(root: string | undefined, closurePath: string | undefined, depsPaths: string[] | undefined) {
+    this.findDepsJS(root, closurePath, depsPaths);
   }
 
-  private findDepsJS(workspaceRoot: string | undefined) {
-    const root = workspaceRoot;
-    if (workspaceRoot === undefined) {
-      return;
-    }
+  private findDepsJS(root: string | undefined, closurePath: string | undefined, depsPaths: string[] | undefined) {
+    if (!root || !closurePath || !depsPaths || !depsPaths.length) return;
 
-    const depsFiles = glob.sync("**/deps.js", {
-      cwd: workspaceRoot,
-      ignore: "**/node_modules/**/*",
+    this.closurePath = path.resolve(root, closurePath);
+
+    depsPaths.forEach((deps) => {
+      const depsJsAbsolutePath = path.isAbsolute(deps) ? deps : path.resolve(root, deps);
+
+      if (!fs.existsSync(depsJsAbsolutePath)) return;
+
+      const depsMap = this.parseDepsJS(depsJsAbsolutePath, closurePath);
+
+      this.depsMap = {
+        fileMap: {
+          ...(this.depsMap?.fileMap || {}),
+          ...depsMap.fileMap,
+        },
+        moduleMap: {
+          ...(this.depsMap?.moduleMap || {}),
+          ...depsMap.moduleMap,
+        },
+      };
     });
-
-    const depsJS = depsFiles.find((file) => {
-      const text = fs.readFileSync(path.resolve(workspaceRoot, file));
-      return text.toString().includes("goog.");
-    });
-    // const depsJS = "closure/goog/deps.js";
-
-    if (depsJS) {
-      const depsJsAbsolutePath = path.resolve(workspaceRoot, depsJS);
-
-      this.depsDir = path.dirname(depsJsAbsolutePath);
-      this.depsMap = this.parseDepsJS(depsJsAbsolutePath);
-
-      console.log(this.depsMap);
-      console.log(`detected deps.js: ${depsJsAbsolutePath}`);
-    }
   }
 
   private parseDepsJS(depsJsPath: string): DepsMap {
@@ -77,7 +73,7 @@ export class Deps {
         }
 
         const [relativeFile, provides, requires]: [string, string[], string[]] = parsed;
-        const file = path.resolve(this.depsDir!, relativeFile);
+        const file = path.resolve(this.closurePath!, relativeFile);
 
         prev.fileMap[file] = {
           provides,
