@@ -17,6 +17,14 @@
     "onView:closureDepsView"
   ],
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "closureToolsHelperInheritsView",
+          "name": "Closure Inherits"
+        }
+      ]
+    },
     "configuration": {
       "title": "Closure Tools Helper",
       "properties": {

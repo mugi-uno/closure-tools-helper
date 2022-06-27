@@ -1,11 +1,8 @@
-import * as path from "path";
 import * as vscode from "vscode";
 import { Dependency } from "./Dependency";
 import { Deps } from "./Deps";
 
-export class ClosureDepsProvider
-  implements vscode.TreeDataProvider<vscode.TreeItem>
-{
+export class ClosureInheritsViewProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   deps: Deps | null = null;
 
   constructor(private workspaceRoot: string | undefined) {}

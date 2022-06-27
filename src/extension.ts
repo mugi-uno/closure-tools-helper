@@ -1,5 +1,5 @@
 import { ClosureDefinitionProvider } from "./view/ClosureDefinitionProvider";
-import { ClosureDepsProvider } from "./view/ClosureDepsProvider";
+import { ClosureInheritsViewProvider } from "./view/ClosureInheritsViewProvider";
 import * as vscode from "vscode";
 import { deps } from "./view/Deps";
 
@@ -15,9 +15,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.getConfiguration("closuretoolshelper").get<string[] | undefined>("depsPaths")
   );
 
-  // const closureDepsProvider = new ClosureDepsProvider(rootPath);
-
-  // context.subscriptions.push(vscode.window.registerTreeDataProvider("closureDepsView", closureDepsProvider));
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider("closureToolsHelperInheritsView", new ClosureInheritsViewProvider(rootPath))
+  );
 
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(
@@ -28,6 +28,13 @@ export function activate(context: vscode.ExtensionContext) {
       new ClosureDefinitionProvider()
     )
   );
+
+  vscode.window.onDidChangeTextEditorSelection((event) => {
+    const editor = vscode.window.activeTextEditor;
+
+    console.log(event.selections[0].active);
+    console.log(event.selections[0].end);
+  });
 
   // let disposable = vscode.commands.registerCommand(
   //   "closure-tools-helper.helloWorld",
